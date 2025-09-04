@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click Counter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        :root {
+            --bg-color: #121212;
+            --surface-color: rgba(255, 255, 255, 0.05);
+            --primary-color-start: #00c6ff;
+            --primary-color-end: #0072ff;
+            --text-color: #f0f0f0;
+            --text-color-secondary: #a0a0a0;
+            --success-color: #27ae60;
+            --danger-color: #ff4757;
+            --warning-color: #f39c12;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container { width: 100%; max-width: 700px; display: flex; flex-direction: column; gap: 2rem; }
+        .card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        header { text-align: center; }
+        header h1 { font-size: 2.5rem; font-weight: 700; margin: 0; background: linear-gradient(90deg, var(--primary-color-start), var(--primary-color-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #counter-display { font-size: 8rem; font-weight: 700; text-align: center; line-height: 1; padding: 2rem 0; background: linear-gradient(90deg, var(--primary-color-start), var(--primary-color-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: transform 0.1s ease-out; }
+        .counter-pulse { transform: scale(1.05); }
+        #click-btn { width: 100%; padding: 1.5rem; font-size: 1.5rem; font-weight: 600; color: white; background: linear-gradient(90deg, var(--primary-color-start), var(--primary-color-end)); border: none; border-radius: 15px; cursor: pointer; transition: all 0.2s ease-in-out; box-shadow: 0 4px 15px rgba(0, 150, 255, 0.2); }
+        #click-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 150, 255, 0.3); }
+        #click-btn:active { transform: translateY(0) scale(0.98); }
+        .settings h2 { margin-top: 0; font-weight: 600; color: var(--text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .time-inputs { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .time-inputs input { width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); font-size: 1rem; text-align: center; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .timer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .timer-controls button { width: 100%; padding: 0.75rem; font-size: 1rem; border-radius: 10px; cursor: pointer; border: none; color: white; transition: background-color 0.2s ease; }
+        #start-timer-btn { background-color: var(--success-color); }
+        #start-timer-btn:hover { background-color: #2ecc71; }
+        #pause-resume-btn { background-color: var(--warning-color); grid-column: 1 / -1; } /* Spans full width */
+        #pause-resume-btn:hover { background-color: #f1c40f; }
+        #stop-timer-btn { background-color: var(--danger-color); }
+        #stop-timer-btn:hover { background-color: #ff6b81; }
+        #timer-display { text-align: center; font-size: 1.5rem; margin-top: 1.5rem; font-weight: 300; color: var(--text-color-secondary); min-height: 2rem; }
+        .history-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        #history-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; }
+        #history-list::-webkit-scrollbar { width: 8px; } #history-list::-webkit-scrollbar-track { background: transparent; } #history-list::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 20px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
+        .history-item:last-child { border-bottom: none; } .history-item:hover { background-color: rgba(255,255,255,0.03); } .history-details { display: flex; flex-direction: column; }
+        .history-clicks { font-size: 1.2rem; font-weight: 600; } .history-clicks span { font-weight: 400; font-size: 1rem; color: var(--text-color-secondary); } .history-meta { font-size: 0.8rem; color: var(--text-color-secondary); }
+        .delete-item-btn { background: transparent; border: none; color: var(--text-color-secondary); font-size: 1.5rem; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; padding: 0.5rem; }
+        .delete-item-btn:hover { color: var(--danger-color); transform: scale(1.2); }
+        #clear-history-btn { padding: 0.5rem 1rem; background-color: transparent; border: 1px solid var(--danger-color); color: var(--danger-color); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        #clear-history-btn:hover { background-color: var(--danger-color); color: white; }
+        @media (max-width: 600px) { body { padding: 1rem 0.5rem; } .card { padding: 1.5rem; } header h1 { font-size: 2rem; } #counter-display { font-size: 6rem; } #click-btn { padding: 1.2rem; font-size: 1.2rem; } .time-inputs { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <header><h1>Sleek Click Counter</h1></header> -->
+        <main class="card">
+            <div id="counter-display">0</div>
+            <button id="click-btn">Click</button>
+        </main>
+        <section class="card settings">
+            <h2>Timer Settings</h2>
+            <div class="time-inputs">
+                <input type="number" id="hours-input" placeholder="Hours" min="0">
+                <input type="number" id="minutes-input" placeholder="Minutes" min="0" max="59">
+            </div>
+            <div class="timer-controls">
+                <button id="start-timer-btn">Start Timed Session</button>
+                <button id="stop-timer-btn">Stop & Save Session</button>
+                <button id="pause-resume-btn" style="display: none;">Pause</button>
+            </div>
+            <div id="timer-display"></div>
+        </section>
+        <section class="card history-section">
+            <div class="history-controls"><h2>History</h2><button id="clear-history-btn" title="Clear All History">Clear All</button></div>
+            <ul id="history-list"></ul>
+        </section>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const counterDisplay = document.getElementById('counter-display');
+            const clickBtn = document.getElementById('click-btn');
+            const hoursInput = document.getElementById('hours-input');
+            const minutesInput = document.getElementById('minutes-input');
+            const startTimerBtn = document.getElementById('start-timer-btn');
+            const stopTimerBtn = document.getElementById('stop-timer-btn');
+            const pauseResumeBtn = document.getElementById('pause-resume-btn');
+            const timerDisplay = document.getElementById('timer-display');
+            const historyList = document.getElementById('history-list');
+            const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+            let count = 0;
+            let history = [];
+            let timerInterval = null;
+            let segmentDuration = 0, segmentStartTime = 0, segmentEndTime = 0;
+            
+            // --- NEW State Variables for Pause/Resume ---
+            let isPaused = false;
+            let timeRemainingOnPause = 0;
+
+            const updateCounterDisplay = () => { /* ... (same as before) ... */ counterDisplay.textContent = count; counterDisplay.classList.add('counter-pulse'); setTimeout(() => counterDisplay.classList.remove('counter-pulse'), 100); };
+            const formatTime = (ms) => { /* ... (same as before) ... */ if (ms < 0) ms = 0; const s = Math.floor(ms / 1000); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
+            const saveHistory = () => localStorage.setItem('clickCounterHistory', JSON.stringify(history));
+            const renderHistory = () => { /* ... (same as before) ... */ historyList.innerHTML = ''; if (history.length === 0) { historyList.innerHTML = '<li class="history-item"><div class="history-details"><div class="history-meta">No history yet.</div></div></li>'; clearHistoryBtn.style.display = 'none'; return; } clearHistoryBtn.style.display = 'block'; history.forEach(item => { const li = document.createElement('li'); li.className = 'history-item'; const durText = item.duration > 0 ? `in ${formatTime(item.duration)}` : 'untimed'; li.innerHTML = `<div class="history-details"><div class="history-clicks">${item.clicks} <span>clicks</span></div><div class="history-meta">${durText} on ${new Date(item.timestamp).toLocaleString()}</div></div><button class="delete-item-btn" data-id="${item.id}">&times;</button>`; historyList.appendChild(li); }); };
+            const loadHistory = () => { const saved = localStorage.getItem('clickCounterHistory'); history = saved ? JSON.parse(saved) : []; renderHistory(); };
+            const addHistoryEntry = (clicks, duration) => { if (clicks === 0) return; const newEntry = { id: Date.now(), clicks, duration, timestamp: Date.now() }; history.unshift(newEntry); saveHistory(); renderHistory(); };
+
+            const timerTick = () => {
+                const now = Date.now();
+                const remaining = segmentEndTime - now;
+                if (remaining <= 0) {
+                    addHistoryEntry(count, segmentDuration);
+                    count = 0;
+                    updateCounterDisplay();
+                    while (segmentEndTime <= now) segmentEndTime += segmentDuration;
+                    segmentStartTime = segmentEndTime - segmentDuration;
+                    const newRemaining = segmentEndTime - now;
+                    timerDisplay.textContent = `Time remaining: ${formatTime(newRemaining)}`;
+                } else {
+                    timerDisplay.textContent = `Time remaining: ${formatTime(remaining)}`;
+                }
+            };
+
+            const startTimer = () => {
+                if (timerInterval) clearInterval(timerInterval);
+                const hours = parseInt(hoursInput.value) || 0;
+                const minutes = parseInt(minutesInput.value) || 0;
+                const durationMs = (hours * 3600 + minutes * 60) * 1000;
+                if (durationMs <= 0) { alert('Please enter a valid time.'); return; }
+                
+                segmentDuration = durationMs;
+                segmentStartTime = Date.now();
+                segmentEndTime = segmentStartTime + segmentDuration;
+                count = 0;
+                isPaused = false;
+                updateCounterDisplay();
+                pauseResumeBtn.textContent = 'Pause';
+                pauseResumeBtn.style.display = 'block';
+
+                timerInterval = setInterval(timerTick, 1000);
+                timerTick();
+            };
+
+            const togglePause = () => {
+                if (!timerInterval) return;
+                isPaused = !isPaused;
+                if (isPaused) {
+                    clearInterval(timerInterval);
+                    timeRemainingOnPause = segmentEndTime - Date.now();
+                    pauseResumeBtn.textContent = 'Resume';
+                    timerDisplay.textContent += ' (Paused)';
+                } else {
+                    segmentEndTime = Date.now() + timeRemainingOnPause;
+                    timerInterval = setInterval(timerTick, 1000);
+                    pauseResumeBtn.textContent = 'Pause';
+                    timerTick();
+                }
+            };
+            
+            const stopAndSaveSession = () => {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                pauseResumeBtn.style.display = 'none';
+
+                if (segmentDuration > 0) {
+                    const elapsedTime = isPaused ? segmentDuration - timeRemainingOnPause : Date.now() - segmentStartTime;
+                    if (elapsedTime > 0) addHistoryEntry(count, elapsedTime);
+                } else if (count > 0) {
+                    addHistoryEntry(count, 0);
+                }
+
+                count = 0;
+                segmentDuration = 0; segmentStartTime = 0; segmentEndTime = 0; isPaused = false;
+                updateCounterDisplay();
+                timerDisplay.textContent = '';
+                hoursInput.value = ''; minutesInput.value = '';
+            };
+
+            clickBtn.addEventListener('click', () => { count++; updateCounterDisplay(); });
+            startTimerBtn.addEventListener('click', startTimer);
+            stopTimerBtn.addEventListener('click', stopAndSaveSession);
+            pauseResumeBtn.addEventListener('click', togglePause);
+            historyList.addEventListener('click', (e) => { if (e.target.classList.contains('delete-item-btn')) { const id = parseInt(e.target.getAttribute('data-id')); history = history.filter(item => item.id !== id); saveHistory(); renderHistory(); } });
+            clearHistoryBtn.addEventListener('click', () => { if (confirm('Delete all history?')) { history = []; saveHistory(); renderHistory(); } });
+
+            loadHistory();
+            updateCounterDisplay();
+        });
+    </script>
+</body>
+</html>

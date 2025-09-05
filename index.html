@@ -54,21 +54,53 @@
         #stop-timer-btn:hover { background-color: #ff6b81; }
         #timer-display { text-align: center; font-size: 1.5rem; margin-top: 1.5rem; font-weight: 300; color: var(--text-color-secondary); min-height: 2rem; }
         .history-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        #history-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; }
-        #history-list::-webkit-scrollbar { width: 8px; } #history-list::-webkit-scrollbar-track { background: transparent; } #history-list::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 20px; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s ease; }
-        .history-item:last-child { border-bottom: none; } .history-item:hover { background-color: rgba(255,255,255,0.03); } .history-details { display: flex; flex-direction: column; }
-        .history-clicks { font-size: 1.2rem; font-weight: 600; } .history-clicks span { font-weight: 400; font-size: 1rem; color: var(--text-color-secondary); } .history-meta { font-size: 0.8rem; color: var(--text-color-secondary); }
-        .delete-item-btn { background: transparent; border: none; color: var(--text-color-secondary); font-size: 1.5rem; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; padding: 0.5rem; }
+        
+        /* --- NEW Modern Table Styles --- */
+        .table-container { overflow-x: auto; }
+        #history-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        #history-table thead th {
+            padding: 1rem;
+            color: var(--text-color-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        #history-table tbody td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #history-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        #history-table tbody tr:hover td {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        .delete-item-btn {
+            background: transparent; border: none; color: var(--text-color-secondary); font-size: 1.5rem;
+            cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; padding: 0.5rem;
+            display: flex; align-items: center; justify-content: center;
+        }
         .delete-item-btn:hover { color: var(--danger-color); transform: scale(1.2); }
         #clear-history-btn { padding: 0.5rem 1rem; background-color: transparent; border: 1px solid var(--danger-color); color: var(--danger-color); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         #clear-history-btn:hover { background-color: var(--danger-color); color: white; }
-        @media (max-width: 600px) { body { padding: 1rem 0.5rem; } .card { padding: 1.5rem; } header h1 { font-size: 2rem; } #counter-display { font-size: 6rem; } #click-btn { padding: 1.2rem; font-size: 1.2rem; } .time-inputs { flex-direction: column; } }
+
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; } .card { padding: 1.5rem; } header h1 { font-size: 2rem; } #counter-display { font-size: 6rem; } #click-btn { padding: 1.2rem; font-size: 1.2rem; } .time-inputs { flex-direction: column; }
+            #history-table thead th, #history-table tbody td { padding: 0.75rem 0.5rem; font-size: 0.9rem; }
+            #history-table thead th { font-size: 0.7rem; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- <header><h1>Sleek Click Counter</h1></header> -->
+        <header><h1>Click Counter</h1></header>
         <main class="card">
             <div id="counter-display">0</div>
             <button id="click-btn">Click</button>
@@ -88,7 +120,22 @@
         </section>
         <section class="card history-section">
             <div class="history-controls"><h2>History</h2><button id="clear-history-btn" title="Clear All History">Clear All</button></div>
-            <ul id="history-list"></ul>
+            <!-- History is now a table -->
+            <div class="table-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Clicks</th>
+                            <th>Duration</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- History rows will be injected here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
         </section>
     </div>
     <script>
@@ -101,24 +148,51 @@
             const stopTimerBtn = document.getElementById('stop-timer-btn');
             const pauseResumeBtn = document.getElementById('pause-resume-btn');
             const timerDisplay = document.getElementById('timer-display');
-            const historyList = document.getElementById('history-list');
+            const historyTableBody = document.getElementById('history-table').querySelector('tbody'); // Get table body
             const clearHistoryBtn = document.getElementById('clear-history-btn');
 
-            let count = 0;
-            let history = [];
-            let timerInterval = null;
+            let count = 0, history = [], timerInterval = null;
             let segmentDuration = 0, segmentStartTime = 0, segmentEndTime = 0;
-            
-            // --- NEW State Variables for Pause/Resume ---
-            let isPaused = false;
-            let timeRemainingOnPause = 0;
+            let isPaused = false, timeRemainingOnPause = 0;
 
-            const updateCounterDisplay = () => { /* ... (same as before) ... */ counterDisplay.textContent = count; counterDisplay.classList.add('counter-pulse'); setTimeout(() => counterDisplay.classList.remove('counter-pulse'), 100); };
-            const formatTime = (ms) => { /* ... (same as before) ... */ if (ms < 0) ms = 0; const s = Math.floor(ms / 1000); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
+            const updateCounterDisplay = () => { counterDisplay.textContent = count; counterDisplay.classList.add('counter-pulse'); setTimeout(() => counterDisplay.classList.remove('counter-pulse'), 100); };
+            const formatTime = (ms) => { if (ms < 0) ms = 0; const s = Math.floor(ms / 1000); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; };
             const saveHistory = () => localStorage.setItem('clickCounterHistory', JSON.stringify(history));
-            const renderHistory = () => { /* ... (same as before) ... */ historyList.innerHTML = ''; if (history.length === 0) { historyList.innerHTML = '<li class="history-item"><div class="history-details"><div class="history-meta">No history yet.</div></div></li>'; clearHistoryBtn.style.display = 'none'; return; } clearHistoryBtn.style.display = 'block'; history.forEach(item => { const li = document.createElement('li'); li.className = 'history-item'; const durText = item.duration > 0 ? `in ${formatTime(item.duration)}` : 'untimed'; li.innerHTML = `<div class="history-details"><div class="history-clicks">${item.clicks} <span>clicks</span></div><div class="history-meta">${durText} on ${new Date(item.timestamp).toLocaleString()}</div></div><button class="delete-item-btn" data-id="${item.id}">&times;</button>`; historyList.appendChild(li); }); };
+
+            const renderHistory = () => {
+                historyTableBody.innerHTML = ''; // Clear existing rows
+                if (history.length === 0) {
+                    historyTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-color-secondary);">No history yet.</td></tr>`;
+                    clearHistoryBtn.style.display = 'none';
+                    return;
+                }
+                clearHistoryBtn.style.display = 'block';
+                history.forEach(item => {
+                    const row = document.createElement('tr');
+                    const durationText = item.duration > 0 ? formatTime(item.duration) : 'Untimed';
+                    const dateText = new Date(item.timestamp).toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td>${item.clicks}</td>
+                        <td>${durationText}</td>
+                        <td>${dateText}</td>
+                        <td><button class="delete-item-btn" data-id="${item.id}" title="Delete entry">&times;</button></td>
+                    `;
+                    historyTableBody.appendChild(row);
+                });
+            };
+
             const loadHistory = () => { const saved = localStorage.getItem('clickCounterHistory'); history = saved ? JSON.parse(saved) : []; renderHistory(); };
-            const addHistoryEntry = (clicks, duration) => { if (clicks === 0) return; const newEntry = { id: Date.now(), clicks, duration, timestamp: Date.now() }; history.unshift(newEntry); saveHistory(); renderHistory(); };
+
+            const addHistoryEntry = (clicks, duration) => {
+                // MODIFIED: Only skip if it's an UNTIMED session with zero clicks.
+                if (clicks === 0 && duration === 0) return; 
+                
+                const newEntry = { id: Date.now(), clicks, duration, timestamp: Date.now() };
+                history.unshift(newEntry);
+                saveHistory();
+                renderHistory();
+            };
 
             const timerTick = () => {
                 const now = Date.now();
@@ -129,8 +203,7 @@
                     updateCounterDisplay();
                     while (segmentEndTime <= now) segmentEndTime += segmentDuration;
                     segmentStartTime = segmentEndTime - segmentDuration;
-                    const newRemaining = segmentEndTime - now;
-                    timerDisplay.textContent = `Time remaining: ${formatTime(newRemaining)}`;
+                    timerTick(); // Re-run to update display for the new segment
                 } else {
                     timerDisplay.textContent = `Time remaining: ${formatTime(remaining)}`;
                 }
@@ -155,7 +228,7 @@
                 timerInterval = setInterval(timerTick, 1000);
                 timerTick();
             };
-
+            
             const togglePause = () => {
                 if (!timerInterval) return;
                 isPaused = !isPaused;
@@ -171,7 +244,7 @@
                     timerTick();
                 }
             };
-            
+
             const stopAndSaveSession = () => {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -179,9 +252,9 @@
 
                 if (segmentDuration > 0) {
                     const elapsedTime = isPaused ? segmentDuration - timeRemainingOnPause : Date.now() - segmentStartTime;
-                    if (elapsedTime > 0) addHistoryEntry(count, elapsedTime);
-                } else if (count > 0) {
-                    addHistoryEntry(count, 0);
+                    addHistoryEntry(count, elapsedTime);
+                } else {
+                    addHistoryEntry(count, 0); // For untimed sessions
                 }
 
                 count = 0;
@@ -195,8 +268,15 @@
             startTimerBtn.addEventListener('click', startTimer);
             stopTimerBtn.addEventListener('click', stopAndSaveSession);
             pauseResumeBtn.addEventListener('click', togglePause);
-            historyList.addEventListener('click', (e) => { if (e.target.classList.contains('delete-item-btn')) { const id = parseInt(e.target.getAttribute('data-id')); history = history.filter(item => item.id !== id); saveHistory(); renderHistory(); } });
-            clearHistoryBtn.addEventListener('click', () => { if (confirm('Delete all history?')) { history = []; saveHistory(); renderHistory(); } });
+            historyTableBody.addEventListener('click', (e) => { // Event listener on the table body
+                if (e.target.classList.contains('delete-item-btn')) {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    history = history.filter(item => item.id !== id);
+                    saveHistory();
+                    renderHistory();
+                }
+            });
+            clearHistoryBtn.addEventListener('click', () => { if (confirm('Delete all history? This cannot be undone.')) { history = []; saveHistory(); renderHistory(); } });
 
             loadHistory();
             updateCounterDisplay();
